@@ -2,7 +2,7 @@
 
 ## Thông tin nhóm
 
-- Thành viên 1: TODO_STUDENT
+- Thành viên 1: Đinh Dương Phong
 - Thành viên 2: TODO_STUDENT
 
 ## Mục tiêu

@@ -1,16 +1,16 @@
-from aes_socket_utils import decrypt_aes_cbc, encrypt_aes_cbc
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import pytest
+from aes_socket_utils import encrypt_aes_cbc, decrypt_aes_cbc
 
 def test_wrong_key_should_not_recover_original_plaintext():
-    plain = b"Thong diep dung de test wrong key"
-    key = b"1" * 16
-    iv = b"2" * 16
-    _, _, cipher_bytes = encrypt_aes_cbc(plain, key=key, iv=iv)
-
-    wrong_key = b"3" * 16
-
-    try:
-        recovered = decrypt_aes_cbc(wrong_key, iv, cipher_bytes)
-        assert recovered != plain
-    except ValueError:
-        assert True
+    key1 = b"1" * 16
+    key2 = b"2" * 16
+    iv = b"3" * 16
+    plain = b"Secret message"
+    _, _, ciphertext = encrypt_aes_cbc(plain, key=key1, iv=iv)
+    
+    with pytest.raises(Exception):
+        decrypt_aes_cbc(key2, iv, ciphertext)

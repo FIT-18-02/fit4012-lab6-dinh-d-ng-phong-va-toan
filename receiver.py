@@ -1,6 +1,11 @@
+import sys
+import io
 import os
 import socket
 from pathlib import Path
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 from aes_socket_utils import (
     LENGTH_HEADER_SIZE,
@@ -55,18 +60,18 @@ def receive_data_packet() -> bytes:
 def main() -> None:
     lines = []
 
-    line = f"[*] Receiver đang lắng nghe kênh khóa tại {HOST}:{KEY_PORT}"
+    line = f"[*] Receiver dang lang nghe kenh khoa tai {HOST}:{KEY_PORT}"
     print(line)
     lines.append(line)
 
     key_packet = receive_key_packet()
     key, iv = parse_key_packet(key_packet)
 
-    line = "[+] Đã nhận AES key và IV."
+    line = "[+] Da nhan AES key va IV."
     print(line)
     lines.append(line)
 
-    line = f"[*] Receiver đang lắng nghe kênh dữ liệu tại {HOST}:{DATA_PORT}"
+    line = f"[*] Receiver dang lang nghe kenh du lieu tai {HOST}:{DATA_PORT}"
     print(line)
     lines.append(line)
 
@@ -75,9 +80,9 @@ def main() -> None:
     ciphertext = data_packet[LENGTH_HEADER_SIZE:]
 
     if len(ciphertext) != length:
-        raise ValueError("Ciphertext nhận được không khớp length header.")
+        raise ValueError("Ciphertext nhan duoc khong khop length header.")
 
-    line = "[+] Đã nhận ciphertext."
+    line = "[+] Da nhan ciphertext."
     print(line)
     lines.append(line)
 
@@ -85,12 +90,12 @@ def main() -> None:
     message = plaintext.decode("utf-8", errors="replace")
 
     lines.extend([
-        "[+] Đã giải mã thành công.",
-        f"[+] Bản tin gốc: {message}",
+        "[+] Da giai ma thanh cong.",
+        f"[+] Ban tin goc: {message}",
     ])
 
-    print("[+] Đã giải mã thành công.")
-    print(f"[+] Bản tin gốc: {message}")
+    print("[+] Da giai ma thanh cong.")
+    print(f"[+] Ban tin goc: {message}")
 
     if OUTPUT_FILE:
         Path(OUTPUT_FILE).write_bytes(plaintext)
