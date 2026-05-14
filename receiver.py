@@ -75,6 +75,7 @@ def main() -> None:
     print(line)
     lines.append(line)
 
+    
     data_packet = receive_data_packet()
     length = parse_length_header(data_packet[:LENGTH_HEADER_SIZE])
     ciphertext = data_packet[LENGTH_HEADER_SIZE:]
