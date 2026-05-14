@@ -60,7 +60,7 @@ def receive_data_packet() -> bytes:
 def main() -> None:
     lines = []
 
-    line = f"[*] Receiver dang lang nghe kenh khoa tai {HOST}:{KEY_PORT}"
+    line = f"[*] Receiver đang lắng nghe kênh khóa tại {HOST}:{KEY_PORT}"
     print(line)
     lines.append(line)
 
@@ -71,7 +71,7 @@ def main() -> None:
     print(line)
     lines.append(line)
 
-    line = f"[*] Receiver dang lang nghe kenh du lieu tai {HOST}:{DATA_PORT}"
+    line = f"[*] Receiver đang lắng nghe kênh dữ liệu tại {HOST}:{DATA_PORT}"
     print(line)
     lines.append(line)
 
