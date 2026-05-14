@@ -3,7 +3,7 @@
 ## Thông tin nhóm
 
 - Thành viên 1: Đinh Dương Phong
-- Thành viên 2: TODO_STUDENT
+- Thành viên 2: Trần Đình Đức Toàn
 
 ## Assets
 
