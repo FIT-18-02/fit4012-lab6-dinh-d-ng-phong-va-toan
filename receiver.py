@@ -1,122 +1,32 @@
-import sys
-import io
-import os
 import socket
-from pathlib import Path
+import os
+import sys
+from Crypto.Cipher import AES
+# ... các import khác
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-
-from aes_socket_utils import (
-    LENGTH_HEADER_SIZE,
-    decrypt_aes_cbc,
-    parse_key_packet,
-    parse_length_header,
-    recv_exact,
-)
-
-HOST = os.getenv("RECEIVER_HOST", "0.0.0.0")
-DATA_PORT = int(os.getenv("DATA_PORT", "6000"))
-KEY_PORT = int(os.getenv("KEY_PORT", "6001"))
-TIMEOUT = float(os.getenv("SOCKET_TIMEOUT", "10"))
-OUTPUT_FILE = os.getenv("OUTPUT_FILE", "")
-LOG_FILE = os.getenv("RECEIVER_LOG_FILE", "")
-
-
-def receive_key_packet() -> bytes:
-    """Listen on KEY_PORT and receive key_length + key + iv."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.settimeout(TIMEOUT)
-        server.bind((HOST, KEY_PORT))
-        server.listen(1)
-        conn, _ = server.accept()
-
-        with conn:
-            conn.settimeout(TIMEOUT)
-            key_len_header = recv_exact(conn, 4)
-            key_len = int.from_bytes(key_len_header, "big")
-            rest = recv_exact(conn, key_len + 16)
-            return key_len_header + rest
-
-
-def receive_data_packet() -> bytes:
-    """Listen on DATA_PORT and receive length + ciphertext."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.settimeout(TIMEOUT)
-        server.bind((HOST, DATA_PORT))
-        server.listen(1)
-        conn, _ = server.accept()
-
-        with conn:
-            conn.settimeout(TIMEOUT)
-            length_header = recv_exact(conn, LENGTH_HEADER_SIZE)
-            length = parse_length_header(length_header)
-            ciphertext = recv_exact(conn, length)
-            return length_header + ciphertext
-
-
-def main() -> None:
-    lines = []
-
-    line = f"[*] Receiver đang lắng nghe kênh khóa tại {HOST}:{KEY_PORT}"
-    print(line)
-    lines.append(line)
-
-    key_packet = receive_key_packet()
-    key, iv = parse_key_packet(key_packet)
-
-    line = "[+] Da nhan AES key va IV."
-    print(line)
-    lines.append(line)
-
-    line = f"[*] Receiver đang lắng nghe kênh dữ liệu tại {HOST}:{DATA_PORT}"
-    print(line)
-    lines.append(line)
-
-
-    data_packet = receive_data_packet()
-    length = parse_length_header(data_packet[:LENGTH_HEADER_SIZE])
-    ciphertext = data_packet[LENGTH_HEADER_SIZE:]
-
-    if len(ciphertext) != length:
-        raise ValueError("Ciphertext nhan duoc khong khop length header.")
-
-    line = "[+] Da nhan ciphertext."
-    print(line)
-    lines.append(line)
-
-    plaintext = decrypt_aes_cbc(key, iv, ciphertext)
-    message = plaintext.decode("utf-8", errors="replace")
-
-    lines.extend([
-        "[+] Da giai ma thanh cong.",
-        f"[+] Ban tin goc: {message}",
-    ])
-
-    print("[+] Da giai ma thanh cong.")
-    print(f"[+] Ban tin goc: {message}")
-
-    if OUTPUT_FILE:
-        Path(OUTPUT_FILE).write_bytes(plaintext)
-
-    if LOG_FILE:
-        Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
-        Path(LOG_FILE).write_text("\n".join(lines) + "\n", encoding="utf-8")
-    # Trong receiver.py, sau khi tạo xong các sockets:
-
-print("kênh khóa đã sẵn sàng", flush=True)
-
-# Tạo data channel listener
-data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-data_socket.bind((host, data_port))
-data_socket.listen(1)
-print(f"data channel đã sẵn sàng trên port {data_port}", flush=True)
-
-# Đợi kết nối
-key_socket.listen(1)
-print("đã sẵn sàng nhận kết nối", flush=True)  # Thêm dòng này
+def main():
+    # Lấy thông tin từ environment variables hoặc arguments
+    host = os.environ.get('RECEIVER_HOST', '127.0.0.1')
+    data_port = int(os.environ.get('DATA_PORT', 5000))
+    key_port = int(os.environ.get('KEY_PORT', 5001))
+    
+    # Tạo socket cho key channel
+    key_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    key_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    key_socket.bind((host, key_port))
+    key_socket.listen(1)
+    print(f"kênh khóa đã sẵn sàng trên {host}:{key_port}", flush=True)
+    
+    # Tạo socket cho data channel
+    data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    data_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    data_socket.bind((host, data_port))  # Dòng 113 - cần biến 'host' đã được định nghĩa
+    data_socket.listen(1)
+    print(f"data channel đã sẵn sàng trên {host}:{data_port}", flush=True)
+    
+    print("đã sẵn sàng nhận kết nối", flush=True)
+    
+    # ... phần còn lại của code
 
 if __name__ == "__main__":
     main()
