@@ -33,7 +33,7 @@ def test_local_sender_receiver_roundtrip():
     receiver_env = os.environ.copy()
     receiver_env.update({
         "PYTHONUNBUFFERED": "1",
-        "RECEIVER_HOST": "127.0.0.1",
+        "RECEIVER_HOST": "127.0.0.1", 
         "DATA_PORT": str(data_port),
         "KEY_PORT": str(key_port),
         "SOCKET_TIMEOUT": "5",
@@ -58,8 +58,15 @@ def test_local_sender_receiver_roundtrip():
     )
 
     try:
+        # Đợi receiver thông báo đã sẵn sàng trên cả hai kênh
         first_output = wait_for_output(receiver, "kênh khóa")
-
+        
+        # Thêm timeout ngắn để đảm bảo data channel cũng đã sẵn sàng
+        time.sleep(0.5)  # Import time ở đầu file
+        
+        # Hoặc tốt hơn: đợi thêm dấu hiệu từ receiver
+        second_output = wait_for_output(receiver, "sẵn sàng", timeout=2)
+        
         sender = subprocess.run(
             [sys.executable, "sender.py"],
             cwd=REPO_ROOT,

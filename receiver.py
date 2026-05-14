@@ -75,7 +75,7 @@ def main() -> None:
     print(line)
     lines.append(line)
 
-    
+
     data_packet = receive_data_packet()
     length = parse_length_header(data_packet[:LENGTH_HEADER_SIZE])
     ciphertext = data_packet[LENGTH_HEADER_SIZE:]
@@ -104,7 +104,19 @@ def main() -> None:
     if LOG_FILE:
         Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
         Path(LOG_FILE).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # Trong receiver.py, sau khi tạo xong các sockets:
 
+print("kênh khóa đã sẵn sàng", flush=True)
+
+# Tạo data channel listener
+data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+data_socket.bind((host, data_port))
+data_socket.listen(1)
+print(f"data channel đã sẵn sàng trên port {data_port}", flush=True)
+
+# Đợi kết nối
+key_socket.listen(1)
+print("đã sẵn sàng nhận kết nối", flush=True)  # Thêm dòng này
 
 if __name__ == "__main__":
     main()
