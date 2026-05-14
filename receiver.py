@@ -9,61 +9,57 @@ RECEIVER_HOST = os.environ.get('RECEIVER_HOST', '127.0.0.1')
 DATA_PORT = int(os.environ.get('DATA_PORT', 5000))
 KEY_PORT = int(os.environ.get('KEY_PORT', 5001))
 
-host = RECEIVER_HOST
-data_port = DATA_PORT
-key_port = KEY_PORT
-
-def recv_exact(sock, num_bytes):
-    """Nhận chính xác num_bytes từ socket"""
-    data = b''
-    while len(data) < num_bytes:
-        chunk = sock.recv(num_bytes - len(data))
+def recv_exact(conn, n: int) -> bytes:
+    """Receive exactly n bytes from a TCP connection."""
+    if n <= 0:
+        raise ValueError("Số byte cần nhận phải lớn hơn 0.")
+    
+    chunks = []
+    received = 0
+    while received < n:
+        chunk = conn.recv(n - received)
         if not chunk:
-            raise ConnectionError("Connection closed")
-        data += chunk
-    return data
+            raise ConnectionError("Kết nối bị đóng trước khi nhận đủ dữ liệu.")
+        chunks.append(chunk)
+        received += len(chunk)
+    return b"".join(chunks)
 
 def main():
     try:
-        # Tạo key channel socket
+        # Key channel
         key_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         key_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        key_socket.bind((host, key_port))
+        key_socket.bind((RECEIVER_HOST, KEY_PORT))
         key_socket.listen(1)
         print("kênh khóa đã sẵn sàng", flush=True)
         
-        # Tạo data channel socket
+        # Data channel
         data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         data_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        data_socket.bind((host, data_port))
+        data_socket.bind((RECEIVER_HOST, DATA_PORT))
         data_socket.listen(1)
         print("đã sẵn sàng nhận kết nối", flush=True)
         
-        # Chấp nhận kết nối từ sender
-        print("Đang chờ kết nối key channel...", flush=True)
+        # Accept connections
         key_conn, key_addr = key_socket.accept()
         print(f"Đã chấp nhận kết nối key từ {key_addr}", flush=True)
         
-        print("Đang chờ kết nối data channel...", flush=True)
         data_conn, data_addr = data_socket.accept()
         print(f"Đã chấp nhận kết nối data từ {data_addr}", flush=True)
         
-        # ĐỌC KEY PACKET (từ key_conn)
-        # Format: [key_length:4][key][iv_length:4][iv]
+        # Đọc key packet theo format: [key_length:4][key][iv:16]
         key_len_bytes = recv_exact(key_conn, 4)
         key_len = struct.unpack('!I', key_len_bytes)[0]
-        key = recv_exact(key_conn, key_len)
         
-        iv_len_bytes = recv_exact(key_conn, 4)
-        iv_len = struct.unpack('!I', iv_len_bytes)[0]
-        iv = recv_exact(key_conn, iv_len)
+        key = recv_exact(key_conn, key_len)
+        iv = recv_exact(key_conn, 16)  # IV luôn 16 bytes
         
         print(f"Đã nhận key ({len(key)} bytes) và IV ({len(iv)} bytes)", flush=True)
         
-        # ĐỌC DATA PACKET (từ data_conn)
-        # Format: [ciphertext_length:4][ciphertext]
+        # Đọc data packet: [ciphertext_length:4][ciphertext]
         ct_len_bytes = recv_exact(data_conn, 4)
         ct_len = struct.unpack('!I', ct_len_bytes)[0]
+        
         ciphertext = recv_exact(data_conn, ct_len)
         
         print(f"Đã nhận ciphertext ({len(ciphertext)} bytes)", flush=True)
